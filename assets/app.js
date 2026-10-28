@@ -187,7 +187,7 @@
         return '<div class="row-card" data-row="rems"><div class="field-row">' + H.input(b + "title", "Reminder") + H.input(b + "date", "Date", "date") + H.input(b + "note", "Note") + "</div>" + H.del("rems", i) + "</div>";
       }).join("");
       var btn = "";
-      btn = '<button type="button" class="btn sm no-print" disabled>⬇ Add all to calendar (.ics)</button> <span class="small muted">Calendar download is in the full checklist.</span>';
+      btn = '<button type="button" class="btn sm no-print" data-action="ics">⬇ Add all to calendar (.ics)</button>';
       return '<div class="card"><p class="eyebrow">Step 8 · Don\'t rely on memory</p><h2>Reminders</h2><p class="small">Pick what to include. Dates come from the other steps.</p>' +
         H.input("remOpts.deadline", "My SAVE exit deadline", "check") + H.input("remOpts.weekBefore", "One week before the deadline", "check") + H.input("remOpts.status", "Check my application status", "check") + H.input("remOpts.firstDue", "First bill: a week before, and the due date", "check") + H.input("remOpts.autopay", "Autopay discount cutoff (Dec 31, 2026)", "check") +
         '<div class="field-row">' + H.input("remOpts.recert", "IDR recertification date", "date", { hint: "(from your servicer)" }) + "</div>" +
@@ -237,6 +237,15 @@
     } }
   ];
   var actions = {
+    ics: function (s) {
+      var td = H.today(), ev = reminders(s).filter(function (x) { return x.date >= td; }); if (!ev.length) { alert("No upcoming dates yet. Add a deadline or reminder date first."); return; }
+      function e(t) { return String(t || "").replace(/[\\;,]/g, function (c) { return "\\" + c; }).replace(/\n/g, "\\n"); }
+      var st = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+      var L2 = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Grad-IQ//SAVE Plan Exit Checklist//EN", "CALSCALE:GREGORIAN"];
+      ev.forEach(function (x, i) { var d = x.date.replace(/-/g, ""), n = addDays(x.date, 1).replace(/-/g, ""); L2.push("BEGIN:VEVENT", "UID:gradiq-save-" + d + "-" + i + "@grad-iq", "DTSTAMP:" + st, "DTSTART;VALUE=DATE:" + d, "DTEND;VALUE=DATE:" + n, "SUMMARY:" + e(x.title), "DESCRIPTION:" + e((x.note ? x.note + " " : "") + "Check StudentAid.gov and your servicer."), "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:" + e(x.title), "TRIGGER:-P1D", "END:VALARM", "END:VEVENT"); });
+      L2.push("END:VCALENDAR");
+      var b = new Blob([L2.join("\r\n")], { type: "text/calendar" }), el = document.createElement("a"); el.href = URL.createObjectURL(b); el.download = "save-exit-reminders.ics"; document.body.appendChild(el); el.click(); setTimeout(function () { URL.revokeObjectURL(el.href); el.remove(); }, 500);
+    }
   };
   function compute(s) {
     var o = {}, total = 0, done = 0;

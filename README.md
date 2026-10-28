@@ -2,7 +2,7 @@
 
 Live demo: https://saletra40-a11y.github.io/save-plan-exit-checklist/
 
-This is the **demo-only** edition. It runs on sample data, saves nothing, and has no export, import or calendar download. The full checklist (saves in your browser, JSON backup/restore, CSV export, .ics reminders, print) is a separate download.
+This is the **free full edition** edition. It runs on sample data, saves nothing, and has no export, import or calendar download. The full checklist (saves in your browser, JSON backup/restore, CSV export, .ics reminders, print) is a separate download.
 
 Steps: 1 find your notice and deadline · 2 log in to StudentAid.gov and your servicer · 3 compare plans in the Repayment Calculator · 4 gather income documents · 5 submit the application · 6 record confirmation numbers · 7 check the first bill against the estimate · 8 reminders · 9 forbearance tradeoffs · 10 PSLF notes · call log · sources.
 

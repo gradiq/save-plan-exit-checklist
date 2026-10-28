@@ -2,7 +2,7 @@
    Sections between //@FULL and //@END ship only in the buyer pack; //@DEMO only in the public demo. */
 (function () {
   "use strict";
-  var DEMO = true; // public demo: sample data only, nothing is saved, no export/import
+  var DEMO = false;
   var P, C;
   function $(s, r) { return (r || document).querySelector(s); }
   function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
@@ -44,8 +44,17 @@
   window.PH = H;
 
   var S;
-  function load() { return Object.assign(P.defaults(), P.demo()); }
-  function save() { status("Demo · not saved"); }
+  function load() { try { var r = localStorage.getItem(P.key); if (r) return Object.assign(P.defaults(), JSON.parse(r)); } catch (e) { /* ignore */ } return P.defaults(); }
+  var saveT;
+  function save() { clearTimeout(saveT); saveT = setTimeout(function () { try { localStorage.setItem(P.key, JSON.stringify(S)); status("Saved"); } catch (e) { status("Not saved"); } }, 200); }
+  function download(name, text, type) { var b = new Blob([text], { type: type }); var a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+  function exportJSON() { download(P.slug + "-" + today() + ".json", JSON.stringify({ app: P.slug, version: 1, exported: today(), data: S }, null, 2), "application/json"); toast("Backup downloaded"); }
+  function exportCSV(name) { var t = P.tables[name]; var rows = t.rows(S); download(P.slug + "-" + name + "-" + today() + ".csv", rows.map(function (r) { return r.map(csvCell).join(","); }).join("\r\n"), "text/csv"); toast(t.label + " CSV downloaded"); }
+  function importJSON(file) {
+    var fr = new FileReader();
+    fr.onload = function () { try { var j = JSON.parse(fr.result); var d = j && j.data ? j.data : j; if (!d || typeof d !== "object") throw 0; if (!confirm("Replace everything in this planner with the backup?")) return; S = Object.assign(P.defaults(), d); save(); renderAll(); toast("Backup restored"); } catch (e) { alert("That file isn't a backup from this planner."); } };
+    fr.readAsText(file);
+  }
   function status(m) { var s = $("#save-status"); if (s) s.textContent = m; }
 
   function chrome() {
@@ -53,18 +62,18 @@
     top.innerHTML = '<a class="brand" href="#main"><span class="logo-mark" aria-hidden="true"></span><span><strong>Grad-IQ</strong><span class="brand-sub">' + esc(P.title) + "</span></span></a>";
     document.body.insertBefore(top, document.body.firstChild);
     var sk = document.createElement("a"); sk.className = "skip-link"; sk.href = "#main"; sk.textContent = "Skip to content"; document.body.insertBefore(sk, top);
-    document.body.classList.add("gq-demo-build");
-    var b = document.createElement("div"); b.className = "demo-banner sales"; b.setAttribute("role", "region"); b.setAttribute("aria-label", "Demo notice");
-    var bu = safeUrl(C.BUY_URL), pr = C.PRICE ? '<span class="price-tag"><strong>' + esc(C.PRICE) + "</strong></span> " : "";
-    b.innerHTML = "<span class='demo-note'><strong>This is a demo with sample data.</strong> Nothing you type is saved. Get the full planner to save, export and print your own plan.</span><span class='banner-actions'>" + pr +
-      (bu ? '<a class="btn sm buy-btn" href="' + esc(bu) + '" target="_blank" rel="noopener">Get the full planner</a>' : '<span class="pill soon">Coming soon</span>') + "</span>";
-    top.insertAdjacentElement("afterend", b);
     var tb = $("#toolbar");
     var h = '<button type="button" class="btn sm" id="t-print">🖨 Print</button>';
-    h += '<button type="button" class="btn sm" id="t-reset">↺ Reset sample data</button><span class="status" id="save-status">Demo · not saved</span>';
+    h += '<button type="button" class="btn sm" id="t-json">⬇ Backup (JSON)</button>';
+    Object.keys(P.tables).forEach(function (k) { h += '<button type="button" class="btn sm" data-csv="' + k + '">⬇ ' + esc(P.tables[k].label) + " CSV</button>"; });
+    h += '<label class="btn sm" tabindex="0">⬆ Restore backup<input type="file" accept=".json,application/json" id="t-import" class="sr-only"></label>';
+    h += '<button type="button" class="btn sm danger" id="t-clear">Clear all</button><span class="status" id="save-status" aria-live="polite">Saved on this device</span>';
     tb.innerHTML = h;
     $("#t-print").onclick = function () { window.print(); };
-    $("#t-reset").onclick = function () { S = load(); renderAll(); toast("Sample data restored"); };
+    $("#t-json").onclick = exportJSON;
+    $$("[data-csv]", tb).forEach(function (b) { b.onclick = function () { exportCSV(b.getAttribute("data-csv")); }; });
+    $("#t-import").onchange = function (e) { if (e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ""; };
+    $("#t-clear").onclick = function () { if (!confirm("Clear everything in this planner? This can't be undone. Tip: download a backup first.")) return; try { localStorage.removeItem(P.key); } catch (e) { /* ignore */ } S = P.defaults(); renderAll(); toast("Planner cleared"); };
     var ph = document.createElement("div"); ph.className = "print-only";
     ph.innerHTML = "<p class='small'>Grad-IQ · " + esc(P.title) + " · printed " + esc(new Date().toLocaleDateString("en-US")) + (DEMO ? " · DEMO SAMPLE DATA" : "") + "</p>";
     $("#main").insertBefore(ph, $("#main").firstChild);
