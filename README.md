@@ -1,6 +1,6 @@
 # SAVE Plan Exit Checklist — public demo (Grad-IQ)
 
-Live demo: https://saletra40-a11y.github.io/save-plan-exit-checklist/
+Live demo: https://save.grad-iq.org/
 
 This is the **free full edition** edition. It runs on sample data, saves nothing, and has no export, import or calendar download. The full checklist (saves in your browser, JSON backup/restore, CSV export, .ics reminders, print) is a separate download.
 
